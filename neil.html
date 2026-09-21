@@ -1,0 +1,1655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neil</title>
+<style>
+  * { box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --bg-1: #0a120d;
+    --bg-2: #0f1c14;
+    --accent-1: #16a34a;
+    --accent-2: #22c55e;
+    --accent-3: #86efac;
+    --surface: rgba(255,255,255,0.05);
+    --surface-border: rgba(255,255,255,0.09);
+    --text: #eafff0;
+    --text-dim: #94b8a2;
+  }
+
+  body {
+    margin: 0;
+    padding: 22px 16px 60px;
+    font-family: 'Manrope', -apple-system, Roboto, Arial, sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(22,163,74,0.35), transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(134,239,172,0.22), transparent 40%),
+      radial-gradient(circle at 50% 100%, rgba(45,212,191,0.16), transparent 45%),
+      var(--bg-1);
+    background-attachment: fixed;
+  }
+
+  h1 {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 4px 0 20px;
+    letter-spacing: -0.02em;
+    background: linear-gradient(90deg, var(--accent-3), var(--accent-1) 55%, var(--accent-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .card {
+    background: var(--surface);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid var(--surface-border);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  }
+
+  #chat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 55vh;
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+  .msg { font-size: 15px; line-height: 1.55; white-space: pre-wrap; padding: 11px 14px; border-radius: 14px; max-width: 88%; }
+  .msg.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .msg.assistant {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--surface-border);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+  }
+  .msg.hint { color: var(--text-dim); background: none; padding: 4px 0; }
+  .chat-actions { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .chat-actions span { font-size: 13px; color: var(--accent-3); text-decoration: underline; }
+  textarea, input {
+    width: 100%;
+    background: rgba(0,0,0,0.25);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    color: var(--text);
+    padding: 12px;
+    font-size: 15px;
+    font-family: inherit;
+  }
+  textarea:focus, input:focus { outline: none; border-color: var(--accent-1); }
+  textarea { resize: vertical; min-height: 60px; }
+  button {
+    width: 100%;
+    padding: 13px;
+    margin-top: 10px;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    box-shadow: 0 6px 18px rgba(22,163,74,0.35);
+  }
+  button:active { opacity: 0.85; transform: scale(0.99); }
+  button:disabled { background: #2a2e37; color: #666; box-shadow: none; }
+  .settings-toggle {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-align: right;
+    margin-bottom: 8px;
+    text-decoration: underline;
+  }
+  #settings { display: none; }
+  button.secondary {
+    background: rgba(255,255,255,0.08);
+    box-shadow: none;
+    font-weight: 600;
+  }
+  .error { color: #ff7a9c; font-size: 13px; margin-top: 6px; }
+
+  .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; flex-wrap: wrap; gap: 8px; }
+  .profile-btn {
+    width: auto;
+    margin: 0;
+    padding: 8px 11px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.08);
+    box-shadow: none;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  #overlay {
+    position: fixed; inset: 0;
+    background: rgba(5,4,10,0.55);
+    backdrop-filter: blur(2px);
+    display: none;
+    z-index: 20;
+  }
+  #overlay.open { display: block; }
+  #drawer {
+    position: fixed;
+    top: 0; right: 0;
+    height: 100%;
+    width: 86%;
+    max-width: 360px;
+    background: linear-gradient(180deg, #10231a, #0a150f);
+    border-left: 1px solid var(--surface-border);
+    box-shadow: -20px 0 40px rgba(0,0,0,0.5);
+    padding: 22px 18px;
+    transform: translateX(100%);
+    transition: transform 0.28s ease;
+    z-index: 21;
+    overflow-y: auto;
+  }
+  #drawer.open { transform: translateX(0); }
+  .drawer-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+  .drawer-head h2 { font-size: 19px; font-weight: 800; margin: 0; }
+  .drawer-close { font-size: 22px; color: var(--text-dim); line-height: 1; padding: 4px 8px; }
+  .field-label { font-size: 12px; color: var(--text-dim); margin: 12px 0 5px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .tabbar { display: flex; gap: 8px; margin: 16px 0; }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 6px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dim);
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--surface-border);
+  }
+  .tab.active {
+    color: white;
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    border-color: transparent;
+  }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  .list-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--surface-border);
+  }
+  .list-row:last-child { border-bottom: none; }
+  .list-row .row-text { flex: 1; font-size: 15px; }
+  .list-row .row-time { font-size: 12px; color: var(--accent-3); font-weight: 700; margin-right: 4px; }
+  .list-row.done .row-text { text-decoration: line-through; color: var(--text-dim); }
+  .row-x { color: var(--text-dim); font-size: 18px; padding: 2px 8px; }
+  .add-row { display: flex; gap: 8px; margin-top: 4px; }
+  .add-row input { margin-bottom: 0; }
+  .add-row button { width: auto; margin-top: 0; padding: 0 16px; }
+  .add-row input.time-input { flex: 0 0 90px; }
+  .empty-hint { color: var(--text-dim); font-size: 14px; padding: 6px 0; }
+  .suggestion-box { margin-top: 14px; font-size: 15px; line-height: 1.55; white-space: pre-wrap; background: rgba(255,255,255,0.06); border: 1px solid var(--surface-border); border-radius: 12px; padding: 12px 14px; }
+
+  #clock {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: -12px 0 18px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  #clock .time { font-weight: 700; color: var(--accent-3); font-size: 15px; }
+
+  .mood-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 14px; }
+  .mood-chip {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--surface-border);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .mood-chip.selected {
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+    color: white;
+    border-color: transparent;
+  }
+
+  .prompt-row { display: flex; gap: 8px; align-items: flex-start; }
+  .prompt-row textarea { flex: 1; }
+  .mic-btn {
+    width: 48px; height: 48px; flex: 0 0 48px;
+    margin-top: 0;
+    padding: 0;
+    font-size: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mic-btn.recording { background: linear-gradient(135deg, #ef4444, #f97316); }
+
+  .habit-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--surface-border); }
+  .habit-row:last-child { border-bottom: none; }
+  .habit-check {
+    width: 26px; height: 26px; border-radius: 50%;
+    border: 2px solid var(--accent-2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: transparent;
+    flex: 0 0 26px;
+  }
+  .habit-check.done { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: white; }
+  .habit-name { flex: 1; font-size: 15px; }
+  .habit-streak { font-size: 12px; color: var(--accent-3); font-weight: 700; }
+
+  .switch-row { display: flex; align-items: center; justify-content: space-between; margin: 10px 0; }
+  .switch-row .field-label { margin: 0; }
+  .switch {
+    width: 44px; height: 26px; border-radius: 999px;
+    background: rgba(255,255,255,0.12);
+    position: relative;
+    flex: 0 0 44px;
+  }
+  .switch.on { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); }
+  .switch .knob {
+    position: absolute; top: 3px; left: 3px;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: white;
+    transition: left 0.15s ease;
+  }
+  .switch.on .knob { left: 21px; }
+  .hint-text { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+  .entry-item { font-size: 14px; padding: 8px 0; border-bottom: 1px solid var(--surface-border); }
+  .entry-item .entry-date { font-size: 11px; color: var(--text-dim); }
+  .profile-btn.voice-on { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: white; }
+  .profile-btn.wake-on { background: linear-gradient(135deg, var(--accent-1), var(--accent-2)); color: white; }
+  @keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .profile-btn.wake-listening { animation: pulseDot 1.4s ease-in-out infinite; }
+
+  @keyframes sosPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.55); } 50% { box-shadow: 0 0 0 14px rgba(239,68,68,0); } }
+  #sosFab {
+    position: fixed;
+    right: 18px;
+    bottom: 22px;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    font-weight: 800;
+    font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 30;
+    animation: sosPulse 2.2s ease-in-out infinite;
+    border: 2px solid rgba(255,255,255,0.25);
+  }
+  #sosOverlay {
+    position: fixed; inset: 0;
+    background: rgba(5,4,10,0.75);
+    display: none;
+    z-index: 40;
+    padding: 18px;
+    overflow-y: auto;
+  }
+  #sosOverlay.open { display: block; }
+  #sosPanel {
+    background: linear-gradient(180deg, #1c1010, #120a0a);
+    border: 1px solid rgba(239,68,68,0.35);
+    border-radius: 18px;
+    padding: 20px;
+    max-width: 420px;
+    margin: 30px auto;
+  }
+  #sosPanel h2 { margin: 0 0 4px; font-size: 20px; color: #ff8f8f; }
+  .sos-status { font-size: 13px; color: var(--text-dim); margin-bottom: 14px; }
+  .sos-message {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    padding: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    margin-bottom: 14px;
+  }
+  .contact-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid var(--surface-border); }
+  .contact-row:last-child { border-bottom: none; }
+  .contact-name { flex: 1; font-size: 14px; }
+  .contact-actions { display: flex; gap: 6px; }
+  .contact-actions a {
+    text-decoration: none;
+    padding: 7px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+  }
+  .contact-actions .text-link { background: #22c55e; }
+  .contact-actions .call-link { background: #38bdf8; }
+  .sos-close { text-align: center; color: var(--text-dim); font-size: 13px; margin-top: 14px; text-decoration: underline; }
+  .contact-fields { display: flex; gap: 8px; margin-bottom: 8px; }
+  .contact-fields input:first-child { flex: 0 0 40%; }
+
+  /* ---- Android app polish ---- */
+  html {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+    background: #07110f;
+  }
+  body {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    overscroll-behavior-y: none;
+    -webkit-user-select: none;
+    user-select: none;
+    touch-action: manipulation;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  input, textarea, button, select {
+    font: inherit;
+  }
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  button, a, .tab, .profile-btn, .habit-check, .switch {
+    touch-action: manipulation;
+  }
+  button, .profile-btn, .tab {
+    min-height: 44px;
+  }
+  textarea, input {
+    font-size: 16px; /* prevents Android/WebView zoom */
+  }
+  #app, main, .content, .chat, .tab-content {
+    overscroll-behavior: contain;
+  }
+  * {
+    -webkit-overflow-scrolling: touch;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+</style>
+</head>
+<body>
+
+<div id="sosFab" onclick="openSosPanel()">🚨 SOS</div>
+
+<div id="sosOverlay">
+  <div id="sosPanel">
+    <h2>🚨 Emergency</h2>
+    <div class="sos-status" id="sosStatus">Getting your location...</div>
+    <button class="secondary" id="sosRetryBtn" onclick="fetchSosLocation()" style="display:none; margin-bottom:14px;">Retry location</button>
+    <div class="sos-message" id="sosMessagePreview"></div>
+
+    <div id="sosEmergencyCallRow"></div>
+
+    <div id="sosContactsList"></div>
+
+    <div class="sos-close" onclick="closeSosPanel()">Close</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <h1>Neil</h1>
+  <div style="display:flex; gap:8px;">
+    <button class="profile-btn" id="wakeBtn" onclick="toggleWakeWord()">👂 Hey Neil</button>
+    <button class="profile-btn" id="voiceBtn" onclick="toggleVoice()">🔊 Voice</button>
+    <button class="profile-btn" onclick="openDrawer()">👤 Profile</button>
+  </div>
+</div>
+
+<div id="clock"><span class="time" id="clockTime"></span><span id="clockDate"></span></div>
+<div id="openingSuggestion" class="suggestion-box" style="display:none;"></div>
+
+<div id="overlay" onclick="closeDrawer()"></div>
+<div id="drawer">
+  <div class="drawer-head">
+    <h2>Your profile</h2>
+    <span class="drawer-close" onclick="closeDrawer()">✕</span>
+  </div>
+
+  <div class="field-label">Name</div>
+  <input type="text" id="pName" placeholder="Your name" />
+
+  <div class="field-label">Age</div>
+  <input type="number" id="pAge" placeholder="Your age" />
+
+  <div class="field-label">Occupation</div>
+  <input type="text" id="pOccupation" placeholder="e.g. delivery worker, student" />
+
+  <div class="field-label">Goals / what you're working toward</div>
+  <textarea id="pGoals" placeholder="e.g. save money, learn a new skill, get fit"></textarea>
+
+  <div class="field-label">Anything else the assistant should know</div>
+  <textarea id="pNotes" placeholder="habits, routine, constraints, preferences..."></textarea>
+
+  <button onclick="saveProfile()">Save profile</button>
+  <div class="error" id="profileStatus"></div>
+</div>
+
+<div class="settings-toggle" onclick="toggleSettings()">API key settings</div>
+<div class="card" id="settings">
+  <div class="label">Groq API key (saved only on this phone)</div>
+  <input type="password" id="apiKey" placeholder="gsk_..." />
+  <button onclick="saveKey()">Save key</button>
+  <button class="secondary" onclick="listModels()" style="margin-top:6px;">Check available models</button>
+  <div class="error" id="keyStatus"></div>
+  <div id="modelList" style="font-size:13px; margin-top:8px; white-space:pre-wrap;"></div>
+</div>
+
+<div class="settings-toggle" onclick="toggleMore()">Daily summary & backup</div>
+<div class="card" id="moreSettings" style="display:none;">
+  <div class="switch-row">
+    <div class="field-label">Daily summary</div>
+    <div class="switch" id="summarySwitch" onclick="toggleSummaryEnabled()"><div class="knob"></div></div>
+  </div>
+  <input type="time" id="summaryTime" value="20:00" onchange="saveSummarySettings()" />
+  <div class="hint-text">Only triggers while the app is open on your phone (a plain web page can't wake up in the background).</div>
+  <button class="secondary" onclick="generateSummaryNow()" style="margin-top:10px;">Generate today's summary now</button>
+  <div class="suggestion-box" id="summaryBox" style="display:none;"></div>
+
+  <div class="field-label" style="margin-top:18px;">Backup your data</div>
+  <button class="secondary" onclick="exportBackup()">Download backup</button>
+  <button class="secondary" onclick="document.getElementById('restoreFile').click()" style="margin-top:8px;">Restore from backup</button>
+  <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="importBackup(event)" />
+  <div class="error" id="backupStatus"></div>
+</div>
+
+<div class="settings-toggle" onclick="toggleEmergencySettings()">Emergency contacts</div>
+<div class="card" id="emergencySettings" style="display:none;">
+  <div class="field-label">Your name (used in the alert message)</div>
+  <input type="text" id="sosYourName" placeholder="Your name" />
+
+  <div class="field-label">Local emergency number (optional)</div>
+  <input type="text" id="sosEmergencyNumber" placeholder="e.g. 112" />
+
+  <div class="field-label" style="margin-top:14px;">Emergency contacts (up to 5)</div>
+  <div id="contactFields"></div>
+
+  <button onclick="saveEmergencyContacts()">Save contacts</button>
+  <div class="error" id="contactsStatus"></div>
+</div>
+
+<div class="tabbar">
+  <div class="tab active" id="tabBtn-chat" onclick="switchTab('chat')">Chat</div>
+  <div class="tab" id="tabBtn-goals" onclick="switchTab('goals')">Goals</div>
+  <div class="tab" id="tabBtn-planner" onclick="switchTab('planner')">Planner</div>
+  <div class="tab" id="tabBtn-habits" onclick="switchTab('habits')">Habits</div>
+</div>
+
+<div class="view active" id="view-chat">
+  <div class="card">
+    <div class="chat-actions"><span onclick="clearChat()">Clear chat</span></div>
+    <div id="chat">
+      <div class="msg hint">Hey, I'm Neil. Ask me anything below — advice, what to do right now, how to handle something. I'll remember our conversation.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">How are you feeling?</div>
+    <div class="mood-row" id="moodRow"></div>
+    <div class="label">What's on your mind?</div>
+    <div class="prompt-row">
+      <textarea id="prompt" placeholder="e.g. I feel stuck, what should I focus on today?"></textarea>
+      <div class="mic-btn" id="micBtn" onclick="startVoiceInput()">🎤</div>
+    </div>
+    <div class="error" id="promptError"></div>
+    <button id="askBtn" onclick="ask()">Ask</button>
+  </div>
+</div>
+
+<div class="view" id="view-goals">
+  <div class="card">
+    <div class="label">Your goals</div>
+    <div id="goalsList"></div>
+    <div class="add-row">
+      <input type="text" id="goalInput" placeholder="Add a goal..." />
+      <button onclick="addGoal()">Add</button>
+    </div>
+  </div>
+  <button onclick="askAboutGoals()">Get suggestions on my goals</button>
+  <div class="suggestion-box" id="goalsSuggestion" style="display:none;"></div>
+
+  <div class="card" style="margin-top:16px;">
+    <div class="label">Weekly check-in</div>
+    <textarea id="weeklyNote" placeholder="How did this week go? What worked, what didn't?"></textarea>
+    <button class="secondary" onclick="saveWeeklyEntry()">Save entry</button>
+    <div id="weeklyEntries" style="margin-top:10px;"></div>
+  </div>
+  <button onclick="askWeeklyFeedback()">Get feedback on my week</button>
+  <div class="suggestion-box" id="weeklySuggestion" style="display:none;"></div>
+</div>
+
+<div class="view" id="view-planner">
+  <div class="card">
+    <div class="label">Today's plan</div>
+    <div id="plannerList"></div>
+    <div class="add-row">
+      <input type="text" id="plannerTime" class="time-input" placeholder="9:00am" />
+      <input type="text" id="plannerTask" placeholder="What to do" />
+      <button onclick="addPlannerItem()">Add</button>
+    </div>
+  </div>
+  <button onclick="askAboutPlanner()">Suggest what to do right now</button>
+  <div class="suggestion-box" id="plannerSuggestion" style="display:none;"></div>
+</div>
+
+<div class="view" id="view-habits">
+  <div class="card">
+    <div class="label">Daily habits</div>
+    <div id="habitsList"></div>
+    <div class="add-row">
+      <input type="text" id="habitInput" placeholder="Add a habit, e.g. no smoking" />
+      <button onclick="addHabit()">Add</button>
+    </div>
+  </div>
+  <button onclick="askAboutHabits()">Get suggestions on my habits</button>
+  <div class="suggestion-box" id="habitsSuggestion" style="display:none;"></div>
+</div>
+
+
+<script>
+  // ---- Android/Capacitor bridge (safe in browser too) ----
+  window.NeilNative = {
+    isAndroidApp: !!window.Capacitor,
+    haptic: function(style) {
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics) {
+          return window.Capacitor.Plugins.Haptics.impact({ style: style || 'LIGHT' });
+        }
+      } catch (_) {}
+    },
+    hideKeyboard: function() {
+      try {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Keyboard) {
+          return window.Capacitor.Plugins.Keyboard.hide();
+        }
+      } catch (_) {}
+    }
+  };
+
+  // Avoid accidental double-taps on action buttons.
+  document.addEventListener('click', function(e) {
+    const el = e.target.closest('button');
+    if (!el || el.disabled || el.dataset.noDebounce === 'true') return;
+    if (el.dataset.busyClick === 'true') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    el.dataset.busyClick = 'true';
+    setTimeout(() => { delete el.dataset.busyClick; }, 350);
+  }, true);
+</script>
+
+<script>
+  function openDrawer() {
+    document.getElementById('drawer').classList.add('open');
+    document.getElementById('overlay').classList.add('open');
+    loadProfileIntoForm();
+  }
+
+  function closeDrawer() {
+    document.getElementById('drawer').classList.remove('open');
+    document.getElementById('overlay').classList.remove('open');
+  }
+
+  function getProfile() {
+    try {
+      return JSON.parse(localStorage.getItem('userProfile') || '{}');
+    } catch (e) {
+      return {};
+    }
+  }
+
+  function loadProfileIntoForm() {
+    const p = getProfile();
+    document.getElementById('pName').value = p.name || '';
+    document.getElementById('pAge').value = p.age || '';
+    document.getElementById('pOccupation').value = p.occupation || '';
+    document.getElementById('pGoals').value = p.goals || '';
+    document.getElementById('pNotes').value = p.notes || '';
+  }
+
+  function saveProfile() {
+    const profile = {
+      name: document.getElementById('pName').value.trim(),
+      age: document.getElementById('pAge').value.trim(),
+      occupation: document.getElementById('pOccupation').value.trim(),
+      goals: document.getElementById('pGoals').value.trim(),
+      notes: document.getElementById('pNotes').value.trim()
+    };
+    localStorage.setItem('userProfile', JSON.stringify(profile));
+    const status = document.getElementById('profileStatus');
+    status.style.color = '#6f6';
+    status.textContent = 'Saved.';
+    setTimeout(() => { status.textContent = ''; }, 1500);
+  }
+
+  function profileSummary() {
+    const p = getProfile();
+    const parts = [];
+    if (p.name) parts.push('Name: ' + p.name);
+    if (p.age) parts.push('Age: ' + p.age);
+    if (p.occupation) parts.push('Occupation: ' + p.occupation);
+    if (p.goals) parts.push('Goals: ' + p.goals);
+    if (p.notes) parts.push('Other notes: ' + p.notes);
+    return parts.length ? parts.join('\n') : '';
+  }
+
+  function updateClock() {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+    document.getElementById('clockTime').textContent = timeStr;
+    document.getElementById('clockDate').textContent = '· ' + dateStr;
+  }
+
+  function switchTab(name) {
+    ['chat', 'goals', 'planner', 'habits'].forEach(t => {
+      document.getElementById('view-' + t).classList.toggle('active', t === name);
+      document.getElementById('tabBtn-' + t).classList.toggle('active', t === name);
+    });
+    if (name === 'goals') { renderGoals(); renderWeeklyEntries(); }
+    if (name === 'planner') renderPlanner();
+    if (name === 'habits') renderHabits();
+  }
+
+  // ---- Goals ----
+  function getGoals() {
+    try { return JSON.parse(localStorage.getItem('goals') || '[]'); } catch (e) { return []; }
+  }
+  function saveGoals(g) { localStorage.setItem('goals', JSON.stringify(g)); }
+
+  function renderGoals() {
+    const goals = getGoals();
+    const list = document.getElementById('goalsList');
+    if (!goals.length) {
+      list.innerHTML = '<div class="empty-hint">No goals yet — add what you\'re working toward.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    goals.forEach(g => {
+      const row = document.createElement('div');
+      row.className = 'list-row' + (g.done ? ' done' : '');
+      row.innerHTML = '<div class="row-text"></div><span class="row-x">✕</span>';
+      row.querySelector('.row-text').textContent = g.text;
+      row.querySelector('.row-text').onclick = () => toggleGoal(g.id);
+      row.querySelector('.row-x').onclick = () => deleteGoal(g.id);
+      list.appendChild(row);
+    });
+  }
+
+  function addGoal() {
+    const input = document.getElementById('goalInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const goals = getGoals();
+    goals.push({ id: Date.now(), text, done: false });
+    saveGoals(goals);
+    input.value = '';
+    renderGoals();
+  }
+
+  function toggleGoal(id) {
+    const goals = getGoals().map(g => g.id === id ? { ...g, done: !g.done } : g);
+    saveGoals(goals);
+    renderGoals();
+  }
+
+  function deleteGoal(id) {
+    saveGoals(getGoals().filter(g => g.id !== id));
+    renderGoals();
+  }
+
+  function goalsSummary() {
+    const goals = getGoals();
+    if (!goals.length) return '';
+    return goals.map(g => '- ' + g.text + (g.done ? ' (done)' : ' (in progress)')).join('\n');
+  }
+
+  // ---- Planner (resets each new day) ----
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  function getPlanner() {
+    const storedDate = localStorage.getItem('plannerDate');
+    if (storedDate !== todayKey()) {
+      const oldItems = JSON.parse(localStorage.getItem('plannerItems') || '[]');
+      if (storedDate && oldItems.length) {
+        const log = JSON.parse(localStorage.getItem('plannerLog') || '{}');
+        log[storedDate] = oldItems;
+        const dates = Object.keys(log).sort();
+        while (dates.length > 14) { delete log[dates.shift()]; }
+        localStorage.setItem('plannerLog', JSON.stringify(log));
+      }
+      localStorage.setItem('plannerDate', todayKey());
+      localStorage.setItem('plannerItems', '[]');
+      return [];
+    }
+    try { return JSON.parse(localStorage.getItem('plannerItems') || '[]'); } catch (e) { return []; }
+  }
+
+  function savePlanner(items) {
+    localStorage.setItem('plannerItems', JSON.stringify(items));
+    localStorage.setItem('plannerDate', todayKey());
+  }
+
+  function renderPlanner() {
+    const items = getPlanner();
+    const list = document.getElementById('plannerList');
+    if (!items.length) {
+      list.innerHTML = '<div class="empty-hint">Nothing planned yet for today.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    items.forEach(it => {
+      const row = document.createElement('div');
+      row.className = 'list-row' + (it.done ? ' done' : '');
+      row.innerHTML = '<span class="row-time"></span><div class="row-text"></div><span class="row-x">✕</span>';
+      if (it.time) row.querySelector('.row-time').textContent = it.time;
+      row.querySelector('.row-text').textContent = it.text;
+      row.querySelector('.row-text').onclick = () => togglePlannerItem(it.id);
+      row.querySelector('.row-x').onclick = () => deletePlannerItem(it.id);
+      list.appendChild(row);
+    });
+  }
+
+  function addPlannerItem() {
+    const timeEl = document.getElementById('plannerTime');
+    const taskEl = document.getElementById('plannerTask');
+    const text = taskEl.value.trim();
+    if (!text) return;
+    const items = getPlanner();
+    items.push({ id: Date.now(), time: timeEl.value.trim(), text, done: false });
+    savePlanner(items);
+    timeEl.value = '';
+    taskEl.value = '';
+    renderPlanner();
+  }
+
+  function togglePlannerItem(id) {
+    const items = getPlanner().map(it => it.id === id ? { ...it, done: !it.done } : it);
+    savePlanner(items);
+    renderPlanner();
+  }
+
+  function deletePlannerItem(id) {
+    savePlanner(getPlanner().filter(it => it.id !== id));
+    renderPlanner();
+  }
+
+  function plannerSummary() {
+    const items = getPlanner();
+    if (!items.length) return '';
+    return items.map(it => '- ' + (it.time ? it.time + ': ' : '') + it.text + (it.done ? ' (done)' : ' (not done yet)')).join('\n');
+  }
+
+  async function askAI(userMessage) {
+    const key = localStorage.getItem('groqApiKey');
+    if (!key) return 'Add your API key in settings on the Chat tab first.';
+    const context = buildFullContext();
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let res;
+    try {
+      res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      signal: controller.signal,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({
+        model: 'openai/gpt-oss-20b',
+        messages: [
+          {
+            role: 'system',
+            content: 'Your name is Neil. You are a direct, practical personal assistant. Give short, honest, actionable suggestions on what the person should do and how to do it, in order of priority. No fluff.'
+              + (context ? '\n\nHere is what you know about the person:\n' + context : '')
+          },
+          { role: 'user', content: userMessage }
+        ]
+      })
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error('API error ' + res.status + ': ' + errText.slice(0, 200));
+    }
+    const data = await res.json();
+    return data.choices[0].message.content;
+  }
+
+  async function askAboutGoals() {
+    const box = document.getElementById('goalsSuggestion');
+    box.style.display = 'block';
+    box.textContent = 'Thinking...';
+    try {
+      box.textContent = await askAI('Based on my goals, what should I focus on and how should I approach it?');
+      speak(box.textContent);
+    } catch (e) {
+      box.textContent = 'Something went wrong: ' + e.message;
+    }
+  }
+
+  async function askAboutPlanner() {
+    const box = document.getElementById('plannerSuggestion');
+    box.style.display = 'block';
+    box.textContent = 'Thinking...';
+    try {
+      box.textContent = await askAI("Based on today's plan and my goals, what should I do right now and how should I do it?");
+      speak(box.textContent);
+    } catch (e) {
+      box.textContent = 'Something went wrong: ' + e.message;
+    }
+  }
+
+  function buildFullContext() {
+    let context = profileSummary();
+    const goals = goalsSummary();
+    const plan = plannerSummary();
+    const mood = todaysMood();
+    const habits = habitsSummary();
+    if (mood) context += (context ? '\n\n' : '') + 'Current mood: ' + mood;
+    if (goals) context += (context ? '\n\n' : '') + 'Current goals:\n' + goals;
+    if (plan) context += (context ? '\n\n' : '') + "Today's planned tasks:\n" + plan;
+    if (habits) context += (context ? '\n\n' : '') + 'Daily habits:\n' + habits;
+    return context;
+  }
+
+  // ---- Mood ----
+  const MOODS = ['😴 Tired', '😣 Stressed', '😌 Calm', '💪 Motivated', '😕 Low', '🙂 Good'];
+
+  function getMoodLog() {
+    try { return JSON.parse(localStorage.getItem('moodLog') || '{}'); } catch (e) { return {}; }
+  }
+
+  function todaysMood() {
+    return getMoodLog()[todayKey()] || '';
+  }
+
+  function setMood(mood) {
+    const log = getMoodLog();
+    log[todayKey()] = mood;
+    localStorage.setItem('moodLog', JSON.stringify(log));
+    renderMoodRow();
+  }
+
+  function renderMoodRow() {
+    const row = document.getElementById('moodRow');
+    const current = todaysMood();
+    row.innerHTML = '';
+    MOODS.forEach(m => {
+      const chip = document.createElement('div');
+      chip.className = 'mood-chip' + (m === current ? ' selected' : '');
+      chip.textContent = m;
+      chip.onclick = () => setMood(m);
+      row.appendChild(chip);
+    });
+  }
+
+  // ---- Voice input ----
+  function startVoiceInput() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const mic = document.getElementById('micBtn');
+    if (!SR) {
+      document.getElementById('promptError').textContent = 'Voice input isn\'t supported in this browser.';
+      return;
+    }
+    const recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    mic.classList.add('recording');
+    recognition.onresult = (event) => {
+      const text = event.results[0][0].transcript;
+      if (EMERGENCY_PHRASES.test(text)) {
+        triggerVoiceEmergency();
+        return;
+      }
+      const promptEl = document.getElementById('prompt');
+      promptEl.value = (promptEl.value ? promptEl.value + ' ' : '') + text;
+    };
+    recognition.onerror = () => { document.getElementById('promptError').textContent = 'Could not hear that, try again.'; };
+    recognition.onend = () => { mic.classList.remove('recording'); };
+    recognition.start();
+  }
+
+  // ---- Habits ----
+  function getHabits() {
+    try { return JSON.parse(localStorage.getItem('habits') || '[]'); } catch (e) { return []; }
+  }
+  function saveHabits(h) { localStorage.setItem('habits', JSON.stringify(h)); }
+
+  function habitStreak(habit) {
+    let streak = 0;
+    let d = new Date();
+    if (!habit.history[todayKey()]) d.setDate(d.getDate() - 1);
+    while (true) {
+      const key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+      if (habit.history[key]) { streak++; d.setDate(d.getDate() - 1); } else break;
+    }
+    return streak;
+  }
+
+  function addHabit() {
+    const input = document.getElementById('habitInput');
+    const name = input.value.trim();
+    if (!name) return;
+    const habits = getHabits();
+    habits.push({ id: Date.now(), name, history: {} });
+    saveHabits(habits);
+    input.value = '';
+    renderHabits();
+  }
+
+  function toggleHabitToday(id) {
+    const habits = getHabits();
+    const h = habits.find(x => x.id === id);
+    if (!h) return;
+    const key = todayKey();
+    h.history[key] = !h.history[key];
+    saveHabits(habits);
+    renderHabits();
+  }
+
+  function deleteHabit(id) {
+    saveHabits(getHabits().filter(h => h.id !== id));
+    renderHabits();
+  }
+
+  function renderHabits() {
+    const habits = getHabits();
+    const list = document.getElementById('habitsList');
+    if (!habits.length) {
+      list.innerHTML = '<div class="empty-hint">No habits yet — add one to start tracking.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    habits.forEach(h => {
+      const doneToday = !!h.history[todayKey()];
+      const streak = habitStreak(h);
+      const row = document.createElement('div');
+      row.className = 'habit-row';
+      row.innerHTML = '<div class="habit-check' + (doneToday ? ' done' : '') + '">' + (doneToday ? '✓' : '') + '</div>'
+        + '<div class="habit-name"></div>'
+        + '<div class="habit-streak">' + streak + (streak === 1 ? ' day' : ' days') + '</div>'
+        + '<span class="row-x">✕</span>';
+      row.querySelector('.habit-name').textContent = h.name;
+      row.querySelector('.habit-check').onclick = () => toggleHabitToday(h.id);
+      row.querySelector('.row-x').onclick = () => deleteHabit(h.id);
+      list.appendChild(row);
+    });
+  }
+
+  function habitsSummary() {
+    const habits = getHabits();
+    if (!habits.length) return '';
+    return habits.map(h => '- ' + h.name + ': ' + habitStreak(h) + ' day streak, ' + (h.history[todayKey()] ? 'done today' : 'not done today')).join('\n');
+  }
+
+  async function askAboutHabits() {
+    const box = document.getElementById('habitsSuggestion');
+    box.style.display = 'block';
+    box.textContent = 'Thinking...';
+    try {
+      box.textContent = await askAI('Based on my habits and streaks, what should I focus on to keep them up or improve them?');
+      speak(box.textContent);
+    } catch (e) {
+      box.textContent = 'Something went wrong: ' + e.message;
+    }
+  }
+
+  // ---- Weekly check-in ----
+  function getWeeklyEntries() {
+    try { return JSON.parse(localStorage.getItem('weeklyEntries') || '[]'); } catch (e) { return []; }
+  }
+
+  function saveWeeklyEntry() {
+    const textEl = document.getElementById('weeklyNote');
+    const text = textEl.value.trim();
+    if (!text) return;
+    const entries = getWeeklyEntries();
+    entries.unshift({ date: todayKey(), text });
+    localStorage.setItem('weeklyEntries', JSON.stringify(entries.slice(0, 10)));
+    textEl.value = '';
+    renderWeeklyEntries();
+  }
+
+  function renderWeeklyEntries() {
+    const el = document.getElementById('weeklyEntries');
+    const entries = getWeeklyEntries();
+    if (!entries.length) { el.innerHTML = ''; return; }
+    el.innerHTML = entries.slice(0, 5).map(e =>
+      '<div class="entry-item"><div class="entry-date">' + e.date + '</div>' + e.text.replace(/</g, '&lt;') + '</div>'
+    ).join('');
+  }
+
+  function weeklyStatsSummary() {
+    const log = JSON.parse(localStorage.getItem('plannerLog') || '{}');
+    const dates = Object.keys(log).slice(-7);
+    if (!dates.length) return '';
+    let total = 0, done = 0;
+    dates.forEach(d => { log[d].forEach(it => { total++; if (it.done) done++; }); });
+    return total ? ('Past ' + dates.length + ' days: ' + done + '/' + total + ' planned tasks completed.') : '';
+  }
+
+  async function askWeeklyFeedback() {
+    const box = document.getElementById('weeklySuggestion');
+    box.style.display = 'block';
+    box.textContent = 'Thinking...';
+    try {
+      const entries = getWeeklyEntries().slice(0, 3).map(e => e.date + ': ' + e.text).join('\n');
+      const stats = weeklyStatsSummary();
+      let extra = '';
+      if (stats) extra += '\n\n' + stats;
+      if (entries) extra += '\n\nRecent check-in notes:\n' + entries;
+      box.textContent = await askAI('Give me honest feedback on how my week is going and what to adjust going forward.' + extra);
+      speak(box.textContent);
+    } catch (e) {
+      box.textContent = 'Something went wrong: ' + e.message;
+    }
+  }
+
+  // ---- More settings: daily summary ----
+  function getSummarySettings() {
+    try { return JSON.parse(localStorage.getItem('summarySettings') || '{"enabled":false,"time":"20:00"}'); } catch (e) { return { enabled: false, time: '20:00' }; }
+  }
+
+  function toggleMore() {
+    const s = document.getElementById('moreSettings');
+    s.style.display = s.style.display === 'block' ? 'none' : 'block';
+    if (s.style.display === 'block') loadSummarySettingsIntoForm();
+  }
+
+  function loadSummarySettingsIntoForm() {
+    const s = getSummarySettings();
+    document.getElementById('summarySwitch').classList.toggle('on', s.enabled);
+    document.getElementById('summaryTime').value = s.time;
+  }
+
+  function toggleSummaryEnabled() {
+    const s = getSummarySettings();
+    s.enabled = !s.enabled;
+    localStorage.setItem('summarySettings', JSON.stringify(s));
+    document.getElementById('summarySwitch').classList.toggle('on', s.enabled);
+    if (s.enabled && 'Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }
+
+  function saveSummarySettings() {
+    const s = getSummarySettings();
+    s.time = document.getElementById('summaryTime').value || '20:00';
+    localStorage.setItem('summarySettings', JSON.stringify(s));
+  }
+
+  async function generateSummaryNow() {
+    const box = document.getElementById('summaryBox');
+    box.style.display = 'block';
+    box.textContent = 'Generating...';
+    try {
+      const text = await askAI("Give me a short summary of today based on my planner, habits, mood, and goals — what went well and what to carry into tomorrow.");
+      box.textContent = text;
+      speak(text);
+      localStorage.setItem('lastSummaryDate', todayKey());
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification('Your daily summary', { body: text.slice(0, 150) });
+      }
+    } catch (e) {
+      box.textContent = 'Something went wrong: ' + e.message;
+    }
+  }
+
+  function checkDailySummary() {
+    const s = getSummarySettings();
+    if (!s.enabled) return;
+    const now = new Date();
+    const nowStr = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    const lastDate = localStorage.getItem('lastSummaryDate');
+    if (nowStr >= s.time && lastDate !== todayKey() && localStorage.getItem('groqApiKey')) {
+      generateSummaryNow();
+    }
+  }
+
+  // ---- Backup / restore ----
+  const BACKUP_KEYS = ['groqApiKey', 'chatHistory', 'userProfile', 'goals', 'plannerItems', 'plannerDate', 'plannerLog', 'habits', 'moodLog', 'weeklyEntries', 'summarySettings'];
+
+  function exportBackup() {
+    const data = {};
+    BACKUP_KEYS.forEach(k => { const v = localStorage.getItem(k); if (v !== null) data[k] = v; });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'my-assistant-backup-' + todayKey() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function importBackup(event) {
+    const file = event.target.files[0];
+    const status = document.getElementById('backupStatus');
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        BACKUP_KEYS.forEach(k => { if (data[k] !== undefined) localStorage.setItem(k, data[k]); });
+        status.style.color = '#6f6';
+        status.textContent = 'Restored. Reloading...';
+        setTimeout(() => location.reload(), 800);
+      } catch (e) {
+        status.style.color = '#ff7a9c';
+        status.textContent = 'Invalid backup file.';
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ---- Voice output (text-to-speech) ----
+  function isVoiceEnabled() {
+    return localStorage.getItem('voiceEnabled') === 'true';
+  }
+
+  function toggleVoice() {
+    const on = !isVoiceEnabled();
+    localStorage.setItem('voiceEnabled', on ? 'true' : 'false');
+    document.getElementById('voiceBtn').classList.toggle('voice-on', on);
+    if (!on && 'speechSynthesis' in window) window.speechSynthesis.cancel();
+    if (on) speak('Hey, I\'m Neil. I\'ll read my suggestions out loud.');
+  }
+
+  function speak(text) {
+    if (!isVoiceEnabled() || !('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.rate = 1;
+    window.speechSynthesis.speak(utter);
+  }
+
+  // ---- Opening suggestion: fires each time the app is opened ----
+  async function runOpeningSuggestion() {
+    const key = localStorage.getItem('groqApiKey');
+    const box = document.getElementById('openingSuggestion');
+    if (!key) return;
+    const lastOpen = localStorage.getItem('lastOpenPrompt');
+    // avoid spamming if reopened within the same few minutes
+    if (lastOpen && (Date.now() - parseInt(lastOpen, 10)) < 5 * 60 * 1000) return;
+    localStorage.setItem('lastOpenPrompt', String(Date.now()));
+    box.style.display = 'block';
+    box.textContent = 'Checking in…';
+    // Let Android WebView paint the app before starting the network request.
+    await new Promise(resolve => setTimeout(resolve, 450));
+    try {
+      const text = await askAI('In one or two short sentences, give me a quick, real check-in suggestion for right now, based on what you know about me, the time of day, my mood, goals, habits and plan. Be specific, not generic.');
+      box.textContent = text;
+      speak(text);
+    } catch (e) {
+      box.style.display = 'none';
+    }
+  }
+
+  // ---- Wake word: "Hey Neil" ----
+  let wakeRecognition = null;
+  let wakeActive = false;
+
+  function isWakeEnabled() {
+    return localStorage.getItem('wakeEnabled') === 'true';
+  }
+
+  function toggleWakeWord() {
+    const on = !isWakeEnabled();
+    localStorage.setItem('wakeEnabled', on ? 'true' : 'false');
+    document.getElementById('wakeBtn').classList.toggle('wake-on', on);
+    if (on) startWakeListening(); else stopWakeListening();
+  }
+
+  function startWakeListening() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      document.getElementById('promptError').textContent = 'Wake-word listening isn\'t supported in this browser.';
+      return;
+    }
+    if (wakeActive) return;
+    wakeRecognition = new SR();
+    wakeRecognition.lang = 'en-US';
+    wakeRecognition.continuous = true;
+    wakeRecognition.interimResults = true;
+    wakeActive = true;
+    document.getElementById('wakeBtn').classList.add('wake-listening');
+
+    wakeRecognition.onresult = (event) => {
+      let transcript = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      if (EMERGENCY_PHRASES.test(transcript)) {
+        wakeRecognition.stop();
+        triggerVoiceEmergency();
+        return;
+      }
+      if (/hey\s*neil/i.test(transcript)) {
+        wakeRecognition.stop();
+        onWakeWordHeard();
+      }
+    };
+    wakeRecognition.onerror = () => {};
+    wakeRecognition.onend = () => {
+      document.getElementById('wakeBtn').classList.remove('wake-listening');
+      wakeActive = false;
+      // auto-restart if still enabled (mic sessions time out on their own)
+      if (isWakeEnabled()) setTimeout(startWakeListening, 800);
+    };
+    try { wakeRecognition.start(); } catch (e) {}
+  }
+
+  function stopWakeListening() {
+    document.getElementById('wakeBtn').classList.remove('wake-on', 'wake-listening');
+    if (wakeRecognition) { try { wakeRecognition.stop(); } catch (e) {} }
+    wakeActive = false;
+  }
+
+  function onWakeWordHeard() {
+    switchTab('chat');
+    speak('Yes?');
+    setTimeout(() => { startVoiceInput(); }, 700);
+  }
+
+  // ---- Emergency contacts ----
+  function getEmergencyContacts() {
+    try { return JSON.parse(localStorage.getItem('emergencyContacts') || '[]'); } catch (e) { return []; }
+  }
+
+  function getEmergencySettings() {
+    try { return JSON.parse(localStorage.getItem('emergencySettings') || '{}'); } catch (e) { return {}; }
+  }
+
+  function toggleEmergencySettings() {
+    const s = document.getElementById('emergencySettings');
+    s.style.display = s.style.display === 'block' ? 'none' : 'block';
+    if (s.style.display === 'block') loadEmergencyForm();
+  }
+
+  function loadEmergencyForm() {
+    const settings = getEmergencySettings();
+    document.getElementById('sosYourName').value = settings.name || '';
+    document.getElementById('sosEmergencyNumber').value = settings.emergencyNumber || '';
+
+    const contacts = getEmergencyContacts();
+    const wrap = document.getElementById('contactFields');
+    wrap.innerHTML = '';
+    for (let i = 0; i < 5; i++) {
+      const c = contacts[i] || { name: '', phone: '' };
+      const row = document.createElement('div');
+      row.className = 'contact-fields';
+      row.innerHTML = '<input type="text" placeholder="Name" data-idx="' + i + '" data-field="name" value="'
+        + c.name.replace(/"/g, '&quot;') + '"><input type="tel" placeholder="Phone number" data-idx="' + i + '" data-field="phone" value="'
+        + c.phone.replace(/"/g, '&quot;') + '">';
+      wrap.appendChild(row);
+    }
+  }
+
+  function saveEmergencyContacts() {
+    const settings = {
+      name: document.getElementById('sosYourName').value.trim(),
+      emergencyNumber: document.getElementById('sosEmergencyNumber').value.trim()
+    };
+    localStorage.setItem('emergencySettings', JSON.stringify(settings));
+
+    const contacts = [];
+    document.querySelectorAll('#contactFields .contact-fields').forEach(row => {
+      const name = row.querySelector('[data-field="name"]').value.trim();
+      const phone = row.querySelector('[data-field="phone"]').value.trim();
+      if (phone) contacts.push({ name: name || 'Contact', phone });
+    });
+    localStorage.setItem('emergencyContacts', JSON.stringify(contacts));
+
+    const status = document.getElementById('contactsStatus');
+    status.style.color = '#6f6';
+    status.textContent = 'Saved.';
+    setTimeout(() => { status.textContent = ''; }, 1500);
+  }
+
+  // ---- SOS panel ----
+  function buildEmergencyMessage(locationText) {
+    const settings = getEmergencySettings();
+    const who = settings.name ? settings.name : 'I';
+    return '🚨 Emergency alert: ' + who + ' need help right now.' + (locationText ? '\nMy location: ' + locationText : '\n(Location unavailable)') + '\nSent from Neil at ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) + '.';
+  }
+
+  function renderSosContacts(message) {
+    const contacts = getEmergencyContacts();
+    const list = document.getElementById('sosContactsList');
+    if (!contacts.length) {
+      list.innerHTML = '<div class="empty-hint">No emergency contacts saved yet. Add them under "Emergency contacts" in settings.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    contacts.forEach(c => {
+      const row = document.createElement('div');
+      row.className = 'contact-row';
+      const smsHref = 'sms:' + encodeURIComponent(c.phone) + '?body=' + encodeURIComponent(message);
+      const telHref = 'tel:' + encodeURIComponent(c.phone);
+      row.innerHTML = '<div class="contact-name"></div><div class="contact-actions">'
+        + '<a class="text-link" href="' + smsHref + '">Text</a>'
+        + '<a class="call-link" href="' + telHref + '">Call</a></div>';
+      row.querySelector('.contact-name').textContent = c.name + ' (' + c.phone + ')';
+      list.appendChild(row);
+    });
+  }
+
+  function renderSosEmergencyNumber() {
+    const settings = getEmergencySettings();
+    const row = document.getElementById('sosEmergencyCallRow');
+    if (!settings.emergencyNumber) { row.innerHTML = ''; return; }
+    row.innerHTML = '<div class="contact-row"><div class="contact-name">Local emergency services</div>'
+      + '<div class="contact-actions"><a class="call-link" href="tel:' + encodeURIComponent(settings.emergencyNumber) + '">Call ' + settings.emergencyNumber + '</a></div></div>';
+  }
+
+  function openSosPanel() {
+    document.getElementById('sosOverlay').classList.add('open');
+    renderSosEmergencyNumber();
+
+    const message = buildEmergencyMessage('');
+    document.getElementById('sosMessagePreview').textContent = message;
+    renderSosContacts(message);
+
+    fetchSosLocation();
+  }
+
+  function fetchSosLocation() {
+    const statusEl = document.getElementById('sosStatus');
+    const previewEl = document.getElementById('sosMessagePreview');
+    const retryBtn = document.getElementById('sosRetryBtn');
+    retryBtn.style.display = 'none';
+    statusEl.textContent = 'Getting your location...';
+
+    if (!('geolocation' in navigator)) {
+      statusEl.textContent = 'Location not supported on this browser — sending without it.';
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude.toFixed(5);
+        const lon = pos.coords.longitude.toFixed(5);
+        const link = 'https://maps.google.com/?q=' + lat + ',' + lon;
+        statusEl.textContent = 'Location found (accurate to ~' + Math.round(pos.coords.accuracy) + 'm).';
+        const message = buildEmergencyMessage(link);
+        previewEl.textContent = message;
+        renderSosContacts(message);
+      },
+      (err) => {
+        let msg;
+        if (err.code === 1) {
+          msg = 'Location permission denied. Open your phone Settings → Apps → [your browser] → Permissions → Location, and allow it. Then retry.';
+        } else if (err.code === 2) {
+          msg = 'Location unavailable right now — make sure GPS/Location is turned on for your phone, then retry.';
+        } else if (err.code === 3) {
+          msg = 'Timed out getting a precise fix — this can happen indoors. Retrying with a lower-accuracy request.';
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              const lat = pos.coords.latitude.toFixed(5);
+              const lon = pos.coords.longitude.toFixed(5);
+              const link = 'https://maps.google.com/?q=' + lat + ',' + lon;
+              statusEl.textContent = 'Location found (approximate).';
+              const message = buildEmergencyMessage(link);
+              previewEl.textContent = message;
+              renderSosContacts(message);
+            },
+            () => {
+              statusEl.textContent = 'Still could not get a location — sending without it.';
+              retryBtn.style.display = 'block';
+            },
+            { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+          );
+        } else {
+          msg = 'Could not get location — sending without it.';
+        }
+        statusEl.textContent = msg;
+        retryBtn.style.display = 'block';
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  }
+
+  function closeSosPanel() {
+    document.getElementById('sosOverlay').classList.remove('open');
+  }
+
+  function triggerVoiceEmergency() {
+    speak('Emergency mode activated. Opening your emergency contacts now.');
+    openSosPanel();
+  }
+
+  const EMERGENCY_PHRASES = /\b(emergency|i'?m in danger|help me now|send emergency|sos)\b/i;
+
+  function toggleSettings() {
+    const s = document.getElementById('settings');
+    s.style.display = s.style.display === 'block' ? 'none' : 'block';
+  }
+
+  function saveKey() {
+    const key = document.getElementById('apiKey').value.trim();
+    const status = document.getElementById('keyStatus');
+    if (!key) {
+      status.textContent = 'Enter a key first.';
+      return;
+    }
+    localStorage.setItem('groqApiKey', key);
+    status.textContent = 'Saved.';
+    status.style.color = '#6f6';
+  }
+
+  window.onload = function() {
+    const saved = localStorage.getItem('groqApiKey');
+    if (saved) document.getElementById('apiKey').value = saved;
+    renderChat();
+    renderMoodRow();
+    updateClock();
+    setInterval(updateClock, 1000);
+    checkDailySummary();
+    setInterval(checkDailySummary, 60000);
+    document.getElementById('voiceBtn').classList.toggle('voice-on', isVoiceEnabled());
+    document.getElementById('wakeBtn').classList.toggle('wake-on', isWakeEnabled());
+    // Wake listening is user-controlled. Do not start the microphone automatically on launch.
+    // if (isWakeEnabled()) startWakeListening();
+    runOpeningSuggestion();
+  };
+
+  function getHistory() {
+    try {
+      return JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveHistory(history) {
+    localStorage.setItem('chatHistory', JSON.stringify(history));
+  }
+
+  function renderChat() {
+    const chat = document.getElementById('chat');
+    const history = getHistory();
+    if (!history.length) {
+      chat.innerHTML = '<div class="msg hint">Hey, I\'m Neil. Ask me anything below — advice, what to do right now, how to handle something. I\'ll remember our conversation.</div>';
+      return;
+    }
+    chat.innerHTML = '';
+    history.forEach(m => {
+      const div = document.createElement('div');
+      div.className = 'msg ' + (m.role === 'user' ? 'user' : 'assistant');
+      div.textContent = m.content;
+      chat.appendChild(div);
+    });
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function clearChat() {
+    localStorage.removeItem('chatHistory');
+    renderChat();
+  }
+
+  async function listModels() {
+    const key = localStorage.getItem('groqApiKey') || document.getElementById('apiKey').value.trim();
+    const out = document.getElementById('modelList');
+    if (!key) { out.textContent = 'Save a key first.'; return; }
+    out.textContent = 'Checking...';
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': 'Bearer ' + key }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        out.textContent = 'Error ' + res.status + ': ' + JSON.stringify(data).slice(0, 300);
+        return;
+      }
+      const ids = (data.data || []).map(m => m.id);
+      out.textContent = ids.length ? ('Available models:\n' + ids.join('\n')) : 'No models returned.';
+    } catch (e) {
+      out.textContent = 'Failed: ' + e.message;
+    }
+  }
+
+  async function ask() {
+    const promptEl = document.getElementById('prompt');
+    const promptErr = document.getElementById('promptError');
+    const btn = document.getElementById('askBtn');
+    const key = localStorage.getItem('groqApiKey');
+    const userText = promptEl.value.trim();
+
+    promptErr.textContent = '';
+
+    if (!key) {
+      promptErr.textContent = 'Add your API key in settings above first.';
+      return;
+    }
+    if (!userText) {
+      promptErr.textContent = 'Type something first.';
+      return;
+    }
+    if (EMERGENCY_PHRASES.test(userText)) {
+      promptEl.value = '';
+      triggerVoiceEmergency();
+      return;
+    }
+
+    let history = getHistory();
+    history.push({ role: 'user', content: userText });
+    saveHistory(history);
+    renderChat();
+    promptEl.value = '';
+
+    btn.disabled = true;
+    btn.textContent = 'Thinking...';
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + key
+        },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-20b',
+          messages: [
+            {
+              role: 'system',
+              content: 'Your name is Neil. You are a direct, practical personal assistant. Give short, honest, actionable suggestions on what the person should do or avoid. No fluff, no generic encouragement. Use the conversation history to stay consistent with what you already know about the person.'
+                + (buildFullContext() ? '\n\nHere is what you know about the person you are advising:\n' + buildFullContext() + '\nTailor your suggestions to fit this person specifically.' : '')
+            },
+            ...history
+          ]
+        })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('API error ' + res.status + ': ' + errText.slice(0, 200));
+      }
+
+      const data = await res.json();
+      const reply = data.choices[0].message.content;
+      history.push({ role: 'assistant', content: reply });
+      saveHistory(history);
+      renderChat();
+      speak(reply);
+    } catch (e) {
+      history.push({ role: 'assistant', content: 'Something went wrong: ' + e.message });
+      saveHistory(history);
+      renderChat();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Ask';
+    }
+  }
+  // ---- Android lifecycle polish ----
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (_) {}
+      // Continuous browser microphone sessions are unreliable in the background.
+      if (wakeRecognition && wakeActive) {
+        try { wakeRecognition.stop(); } catch (_) {}
+      }
+    } else {
+      renderChat();
+      renderMoodRow();
+      if (isWakeEnabled()) {
+        setTimeout(() => startWakeListening(), 500);
+      }
+    }
+  });
+
+  // Android back gesture/button: close overlays/settings before leaving the page.
+  document.addEventListener('backbutton', () => {
+    const sos = document.getElementById('sosOverlay');
+    const settings = document.getElementById('settings');
+    const profile = document.getElementById('profileDrawer');
+    if (sos && sos.classList.contains('open')) { closeSosPanel(); return; }
+    if (settings && settings.style.display === 'block') { settings.style.display = 'none'; return; }
+    if (profile && profile.classList.contains('open')) {
+      profile.classList.remove('open');
+      return;
+    }
+  });
+
+  // Keep the composer visible after Android keyboard actions.
+  document.addEventListener('focusin', (e) => {
+    if (e.target && (e.target.matches('input, textarea'))) {
+      setTimeout(() => {
+        try { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (_) {}
+      }, 250);
+    }
+  });
+
+</script>
+
+</body>
+</html>
